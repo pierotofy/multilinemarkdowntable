@@ -5,6 +5,54 @@ const vscode = require('vscode');
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 
+
+function convertTable(highlighted){
+	const rows = highlighted.split("\n");
+	let colNames = [];
+	let dataRows = [];
+
+	for (let i = 0; i < rows.length; i++){
+		const row = rows[i].trim();
+
+		if (!row) continue;
+		const cols = row.split("|").map(s => s.trim());
+		
+		if (!cols || cols.length === 1) continue;
+		if (!colNames.length && cols.length > 1 && cols[1][0] !== "-" && cols[1][0] !== undefined) colNames = cols.slice(1, -1);
+		else if (cols.length > 1){
+			if (cols[1][0] === "-" || cols[1][0] === undefined) continue;
+			dataRows.push(cols.slice(1, -1));
+		}
+	}
+
+	// Calculate widths
+	const numCols = colNames.length;
+
+	let widths = new Array(numCols);
+
+	for (let i = 0; i < numCols; i++) widths[i] = 0;
+	for (let i = 0; i < numCols; i++){
+		widths[i] = Math.max(widths[i], colNames[i].length);
+		dataRows.forEach(d => {
+			widths[i] = Math.max(widths[i], d[i].length);
+		});
+	}
+
+	const totalWidth = widths.reduce((a, b) => a + b, 0) + (numCols - 1);
+	const newline = "\n";
+	let out = ["-".repeat(totalWidth)];
+	out.push(colNames.map((c, i) => c.padEnd(widths[i] + 1, ' ')).join(""));
+	out.push(colNames.map((c, i) => "-".repeat(widths[i])).join(" "))
+
+	for (let i = 0; i < dataRows.length; i++){
+		let d = dataRows[i];
+		out.push(d.map((f, i) => f.padEnd(widths[i], ' ')).join(" ")); // TODO length
+		out.push("");
+	}
+
+	return out.join(newline);
+}
+
 /**
  * @param {vscode.ExtensionContext} context
  */
@@ -27,35 +75,7 @@ function activate(context) {
 
 			// vscode.window.showInformationMessage(highlighted);
 			editor.edit(builder => {
-
-				const rows = highlighted.split("\n");
-				let colNames = [];
-				let dataRows = [];
-
-				for (let i = 0; i < rows.length; i++){
-					const row = rows[i].trim();
-					if (!row || row[0] !== "|") continue;
-					
-					const cols = row.split("|").map(s => s.trim());
-					if (!cols || (!colNames && cols[0] === "-")) continue;
-					
-					if (!colNames) colNames = cols;
-					else{
-						dataRows.push(cols);
-					}
-				}
-				
-				let newline = "\n";
-				let out = ["-----"]; // TODO: length
-				out.push(colNames.join("")); // TODO :length
-				out.push(colNames.map(col => "-".repeat(col.length)).join(" "))
-				for (let i = 0; i < dataRows.length; i++){
-					let d = dataRows[i];
-					out.push(d.join(" ")); // TODO length
-					out.push("");
-				}
-
-				builder.replace(selection, out.join(newline));
+				builder.replace(selection, convertTable(highlighted));
 			});
 		}
 
