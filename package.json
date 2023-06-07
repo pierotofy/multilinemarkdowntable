@@ -3,6 +3,7 @@
   "displayName": "MultilineMarkdownTable",
   "description": "",
   "version": "0.0.1",
+  "repository": "https://github.com/pierotofy/multilinemarkdowntable",
   "engines": {
     "vscode": "^1.78.0"
   },

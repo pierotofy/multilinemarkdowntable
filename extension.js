@@ -42,13 +42,15 @@ function convertTable(highlighted){
 	const newline = "\n";
 	let out = ["-".repeat(totalWidth)];
 	out.push(colNames.map((c, i) => c.padEnd(widths[i] + 1, ' ')).join(""));
-	out.push(colNames.map((c, i) => "-".repeat(widths[i])).join(" "))
+	out.push(colNames.map((c, i) => "-".repeat(widths[i])).join(" "));
 
 	for (let i = 0; i < dataRows.length; i++){
 		let d = dataRows[i];
 		out.push(d.map((f, i) => f.padEnd(widths[i], ' ')).join(" ")); // TODO length
 		out.push("");
 	}
+	out.push(colNames.map((c, i) => "-".repeat(widths[i])).join(" "));
+	out.push("");
 
 	return out.join(newline);
 }
