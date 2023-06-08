@@ -55,6 +55,98 @@ function convertTable(highlighted){
 	return out.join(newline);
 }
 
+function formatTable(highlighted, textWidths){
+
+    const widthsPerc = textWidths.split(",").map(t => t.trim()).filter(t => t.length > 0).map(parseFloat);
+    let wSum = widthsPerc.reduce((acc, w) => acc + w, 0);
+    if (wSum < 100) widthsPerc[widthsPerc.length - 1] += (100 - wSum);
+
+    const rows = highlighted.split("\n");
+    let dataRows = [];
+
+    for (let i = 0; i < rows.length; i++){
+        const row = rows[i].trim();
+
+        if (!row) continue;
+        dataRows.push(row);
+    }
+
+
+    let i = 0;
+    for (; i < dataRows.length; i++){
+        if (dataRows[i].indexOf("---") === 0) break;
+    }
+
+    if (dataRows.length < 3 || dataRows[i].indexOf("---") !== 0 && dataRows[i+2].indexOf("---") !== 0) return;
+
+    let colLens = dataRows[i+2].split(/\s+/).map(c => c.trim().length);
+    if (colLens.length === 0) return;
+
+    
+    let cols = [];
+    let start = 0;
+    for (let j = 0; j < colLens.length; j++){
+        let col = dataRows[i+1].slice(start, start + colLens[j]).trim();
+        cols.push(col);
+        start += colLens[j] + 1;
+    }
+
+    let dataCols = [];
+    for (let j = 3; j < dataRows.length; j++){
+        let start = 0;
+        let data = [];
+        for (let k = 0; k < colLens.length; k++){
+            let d = dataRows[j].slice(start, start + colLens[k]).trim();
+
+			if (d === "") continue;
+            if (d.indexOf("---") === 0) break;
+            data.push(d);
+            start += colLens[k] + 1;
+        }
+
+        if (data.length > 0) dataCols.push(data);
+    }
+    
+    if (colLens.length !== widthsPerc.length) return;
+
+    let totalWidth = dataRows.reduce((acc, d) => Math.max(acc, d.length), 0) - (colLens.length - 1);
+    
+    let minPerc = Infinity;
+    let minPercIdx = -1;
+    widthsPerc.forEach((w, idx) => {
+        if (w < minPerc){
+            minPercIdx = idx;
+            minPerc = w;
+        }else if (w === minPerc && colLens[idx] > colLens[minPercIdx]){
+            minPercIdx = idx;
+            minPerc = w;
+        }
+    });
+
+    const factor = colLens[minPercIdx] / minPerc;
+    const widths = widthsPerc.map((w, idx) => Math.max(colLens[idx], Math.ceil(w * factor)));
+    // console.log("widths", widths);
+    // console.log("minPerc", minPerc)
+    totalWidth = widths.reduce((acc, w) => acc + w, 0) + (widths.length - 1);
+    
+
+    let out = [];
+    let newline = "\n";
+
+    out.push("-".repeat(totalWidth));
+    out.push(cols.map((c, i) => c.padEnd(widths[i], ' ')).join(" "));
+    out.push(widths.map((w, i) => '-'.repeat(w)).join(" "));
+    for (let j = 0; j < dataCols.length; j++){
+        let row = dataCols[j].map((d, i) => d.padEnd(widths[i], ' ')).join(" ");
+        out.push(row);
+        out.push("");
+    }
+    out.push("-".repeat(totalWidth));
+
+
+    return out.join(newline);
+}
+
 /**
  * @param {vscode.ExtensionContext} context
  */
@@ -80,12 +172,37 @@ function activate(context) {
 				builder.replace(selection, convertTable(highlighted));
 			});
 		}
-
-
-		// Display a message box to the user
 	});
 
 	context.subscriptions.push(disposable);
+
+	let disposable2 = vscode.commands.registerCommand('multilinemarkdowntable.formattable', async function () {
+		
+		const editor = vscode.window.activeTextEditor;
+		const selection = editor.selection;
+		if (selection && !selection.isEmpty) {
+			const selectionRange = new vscode.Range(selection.start.line, selection.start.character, selection.end.line, selection.end.character);
+			const highlighted = editor.document.getText(selectionRange);
+
+			// vscode.window.showInformationMessage(highlighted);
+			const textWidths = await vscode.window.showInputBox({
+				placeHolder: "20,20,60",
+				prompt: "Type width percentages (comma separated) for each column",
+				value: ""
+			});
+			if (textWidths !== undefined){
+				const formatted = formatTable(highlighted, textWidths);
+				if (formatted !== undefined){
+					editor.edit(builder => {
+						builder.replace(selection, formatted);
+					});
+				}
+			}
+		}
+		
+	});
+
+	context.subscriptions.push(disposable2); 
 }
 
 // This method is called when your extension is deactivated

@@ -16,12 +16,19 @@
     "commands": [{
       "command": "multilinemarkdowntable.converttable",
       "title": "Convert Markdown Table to Multiline"
+    },{
+      "command": "multilinemarkdowntable.formattable",
+      "title": "Format Multiline Table Width"
     }],
     "keybindings":[
       {
         "command": "multilinemarkdowntable.converttable",
         "key": "shift+alt+,",
         "mac": "shift+cmd+,"
+      },{
+        "command": "multilinemarkdowntable.formattable",
+        "key": "ctrl+,",
+        "mac": "ctrl+,"
       }
     ]
   },
