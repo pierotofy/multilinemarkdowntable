@@ -82,7 +82,8 @@ function formatTable(highlighted, textWidths){
     let colLens = dataRows[i+2].split(/\s+/).map(c => c.trim().length);
     if (colLens.length === 0) return;
 
-    
+    //console.log("colLens", colLens);
+
     let cols = [];
     let start = 0;
     for (let j = 0; j < colLens.length; j++){
@@ -98,7 +99,8 @@ function formatTable(highlighted, textWidths){
         for (let k = 0; k < colLens.length; k++){
             let d = dataRows[j].slice(start, start + colLens[k]).trim();
 
-			if (d === "") continue;
+            //console.log("::", d)
+            if (d === "") continue;
             if (d.indexOf("---") === 0) break;
             data.push(d);
             start += colLens[k] + 1;
@@ -107,6 +109,7 @@ function formatTable(highlighted, textWidths){
         if (data.length > 0) dataCols.push(data);
     }
     
+    //console.log("widthsPerc", widthsPerc)
     if (colLens.length !== widthsPerc.length) return;
 
     let totalWidth = dataRows.reduce((acc, d) => Math.max(acc, d.length), 0) - (colLens.length - 1);
@@ -123,12 +126,25 @@ function formatTable(highlighted, textWidths){
         }
     });
 
-    const factor = colLens[minPercIdx] / minPerc;
-    const widths = widthsPerc.map((w, idx) => Math.max(colLens[idx], Math.ceil(w * factor)));
-    // console.log("widths", widths);
-    // console.log("minPerc", minPerc)
-    totalWidth = widths.reduce((acc, w) => acc + w, 0) + (widths.length - 1);
+    let factor = colLens[minPercIdx] / minPerc;
+    let widths = widthsPerc.map((w, idx) => Math.max(colLens[idx], Math.ceil(w * factor)));
+    //console.log("widths", widths);
+    //console.log("minPerc", minPerc);
+    //console.log(colLens[minPercIdx], minPerc, factor);
     
+    let maxWidth = 0;
+    let maxWidthIdx = -1;
+    widths.forEach((w, i) => {
+        if (w > maxWidth){
+            maxWidth = w;
+            maxWidthIdx = i;
+        }
+    });
+
+    factor *= widths[maxWidthIdx] / widthsPerc[maxWidthIdx];
+    widths = widthsPerc.map((w, idx) => Math.max(colLens[idx], Math.ceil(w * factor)));
+    //console.log(widths);
+    totalWidth = widths.reduce((acc, w) => acc + w, 0) + (widths.length - 1);
 
     let out = [];
     let newline = "\n";
